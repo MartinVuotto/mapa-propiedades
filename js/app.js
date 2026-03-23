@@ -185,66 +185,47 @@ function initMap() {
    HEATMAP
    ======================================== */
 function toggleHeatmap() {
-  // ── DIAGNÓSTICO TEMPORAL ──────────────────────────────────────────────────
-  const propsConPm2 = Object.values(properties).filter(
-    p => p.precio_usd > 0 && p.m2_cubiertos > 0
-  ).length;
-  console.log('[HEATMAP] heatEnabled (antes del toggle):', heatEnabled);
-  console.log('[HEATMAP] typeof L.heatLayer:', typeof L.heatLayer);
-  console.log('[HEATMAP] propiedades con pm2 > 0:', propsConPm2);
-  console.log('[HEATMAP] total properties:', Object.keys(properties).length);
-  // ─────────────────────────────────────────────────────────────────────────
-
-  // Guard: leaflet.heat must be loaded
   if (typeof L.heatLayer !== 'function') {
     showToast('Heatmap no disponible: leaflet.heat no se cargó', 'error');
     return;
   }
 
   heatEnabled = !heatEnabled;
-  const btn = document.getElementById('btn-heatmap');
-  btn.classList.toggle('active', heatEnabled);
+  document.getElementById('btn-heatmap').classList.toggle('active', heatEnabled);
 
   if (!heatEnabled) {
-    if (heatLayer) {
-      map.removeLayer(heatLayer);
-      heatLayer = null;
-    }
+    if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
     return;
   }
 
-  // Enabling: build and add layer
   updateHeatmap();
 }
 
 function updateHeatmap() {
   if (!heatEnabled || typeof L.heatLayer !== 'function') return;
 
-  // Remove existing layer before rebuilding
-  if (heatLayer) {
-    map.removeLayer(heatLayer);
-    heatLayer = null;
-  }
+  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
 
-  const points = Object.values(properties)
-    .filter(p => p.lat && p.lng && p.precio_usd > 0 && p.m2_cubiertos > 0)
-    .map(p => {
-      // Normalize: USD 1500/m² → 0.5, USD 3000/m² → 1.0
-      const pm2 = p.precio_usd / p.m2_cubiertos;
-      return [p.lat, p.lng, Math.min(pm2 / 3000, 1)];
-    });
+  const filtered = Object.values(properties)
+    .filter(p => p.lat && p.lng && p.precio_usd > 0 && p.m2_cubiertos > 0);
 
-  if (points.length === 0) {
-    if (heatEnabled) showToast('Sin datos para el heatmap todavía', 'warning');
+  if (filtered.length === 0) {
+    if (heatEnabled) showToast('Sin datos de precio/m² para el heatmap', 'warning');
     return;
   }
 
+  // Pasar USD/m² crudo como intensidad; 'max' hace la normalización automática.
+  // Así el punto más caro siempre aparece rojo y el más barato verde,
+  // independientemente de los valores absolutos.
+  const points = filtered.map(p => [p.lat, p.lng, p.precio_usd / p.m2_cubiertos]);
+  const maxPm2  = Math.max(...filtered.map(p => p.precio_usd / p.m2_cubiertos));
+
   heatLayer = L.heatLayer(points, {
-    radius: 40,
-    blur: 25,
-    max: 1.0,
-    maxZoom: 17,
-    gradient: { 0.0: '#4CAF50', 0.5: '#FF9800', 1.0: '#F44336' },
+    radius:     55,
+    blur:       35,
+    minOpacity: 0.4,
+    max:        maxPm2,
+    gradient:   { 0.4: '#43a047', 0.65: '#fb8c00', 1.0: '#e53935' },
   }).addTo(map);
 }
 

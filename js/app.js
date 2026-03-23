@@ -17,121 +17,104 @@ const PASSWORD = 'mapanorte2026';
 const SESSION_KEY = 'mapa_norte_auth_v1';
 
 /* ========================================
-   ZONE & NEIGHBORHOOD DATA
+   ZONE COLORS
    ======================================== */
-const ZONE_DATA = {
-  'San Isidro': {
-    color: '#1565C0',
-    barrios: {
-      'Martínez':                 { lat: -34.4892, lng: -58.5208 },
-      'Acassuso':                 { lat: -34.4733, lng: -58.5048 },
-      'Beccar':                   { lat: -34.4573, lng: -58.5025 },
-      'San Isidro Centro':        { lat: -34.4707, lng: -58.5264 },
-      'La Horqueta':              { lat: -34.4600, lng: -58.5350 },
-      'Las Lomas de San Isidro':  { lat: -34.4920, lng: -58.5050 },
-      'Punta Chica':              { lat: -34.4500, lng: -58.5000 },
-      'Villa Adelina':            { lat: -34.5100, lng: -58.5250 },
-      'Boulogne':                 { lat: -34.5050, lng: -58.5600 },
-      'Bajo San Isidro':          { lat: -34.4650, lng: -58.5100 },
-    }
-  },
-  'San Fernando': {
-    color: '#6A1B9A',
-    barrios: {
-      'San Fernando Centro':      { lat: -34.4421, lng: -58.5573 },
-      'Victoria':                 { lat: -34.4604, lng: -58.5453 },
-      'Virreyes':                 { lat: -34.4286, lng: -58.5392 },
-      'Carupá':                   { lat: -34.4050, lng: -58.5580 },
-      'El Talar (San Fernando)':  { lat: -34.4150, lng: -58.5750 },
-      'Punta Arenas':             { lat: -34.4300, lng: -58.5200 },
-    }
-  },
-  'Tigre': {
-    color: '#E65100',
-    barrios: {
-      'Tigre Centro':             { lat: -34.4262, lng: -58.5797 },
-      'Rincón de Milberg':        { lat: -34.3900, lng: -58.6100 },
-      'Ricardo Rojas':            { lat: -34.4100, lng: -58.6500 },
-      'Troncos del Talar':        { lat: -34.4300, lng: -58.6300 },
-      'Los Troncos':              { lat: -34.4350, lng: -58.6250 },
-      'Dique Luján':              { lat: -34.3700, lng: -58.6200 },
-      'Tigre Norte':              { lat: -34.4100, lng: -58.5900 },
-      'El Talar (Tigre)':        { lat: -34.4417, lng: -58.6403 },
-      'La Paloma':                { lat: -34.3800, lng: -58.5900 },
-    }
-  },
-  'Nordelta / Benavídez': {
-    color: '#00838F',
-    barrios: {
-      // Benavidez y alrededores
-      'Benavidez Centro':         { lat: -34.3780, lng: -58.7100 },
-      'Amarras de Benavidez':     { lat: -34.3820, lng: -58.7050 },
-      'Haras del Sur (CC)':       { lat: -34.3850, lng: -58.7300 },
-      'Puertos (CC)':             { lat: -34.3600, lng: -58.7450 },
-      'Villanueva':               { lat: -34.3700, lng: -58.7200 },
-      // Nordelta — barrios internos
-      'Nordelta — El Cantón':     { lat: -34.4050, lng: -58.6830 },
-      'Nordelta — Los Alisos':    { lat: -34.3950, lng: -58.6920 },
-      'Nordelta — La Isla':       { lat: -34.4000, lng: -58.6780 },
-      'Nordelta — Torres del Lago': { lat: -34.3920, lng: -58.6950 },
-      'Nordelta — Los Tulipanes': { lat: -34.3870, lng: -58.7000 },
-      'Nordelta — Los Sauces':    { lat: -34.3980, lng: -58.6860 },
-      'Nordelta — El Araza':      { lat: -34.3930, lng: -58.6890 },
-      'Nordelta — La Comarca':    { lat: -34.4020, lng: -58.6920 },
-      // Otros barrios de la zona
-      'El Condado':               { lat: -34.3600, lng: -58.7300 },
-      'Isla del Sol':             { lat: -34.3800, lng: -58.7500 },
-      'El Naudir':                { lat: -34.3750, lng: -58.7350 },
-      'Santa María de Tigre':     { lat: -34.3600, lng: -58.6900 },
-      'Las Tunas':                { lat: -34.3850, lng: -58.6800 },
-    }
-  },
-  'Escobar': {
-    color: '#2E7D32',
-    barrios: {
-      'Belén de Escobar':         { lat: -34.3490, lng: -58.7960 },
-      'Ingeniero Maschwitz':      { lat: -34.3800, lng: -58.7500 },
-      'Garín':                    { lat: -34.4070, lng: -58.7330 },
-      'Matheu':                   { lat: -34.3730, lng: -58.8160 },
-      'Maquinista Savio':         { lat: -34.3938, lng: -58.7933 },
-      'Open Door':                { lat: -34.4050, lng: -58.8550 },
-      'Zelaya':                   { lat: -34.3300, lng: -58.8700 },
-      'Loma Verde':               { lat: -34.4200, lng: -58.7200 },
-      'Canning (Escobar)':              { lat: -34.3600, lng: -58.7700 },
-      'Puertos (CC) — acceso Escobar': { lat: -34.3580, lng: -58.7500 },
-    }
-  },
-  'Pilar': {
-    color: '#C62828',
-    barrios: {
-      'Pilar Centro':             { lat: -34.4582, lng: -58.9143 },
-      'Del Viso':                 { lat: -34.4387, lng: -58.8017 },
-      'Presidente Derqui':        { lat: -34.5143, lng: -58.8440 },
-      'Fátima':                   { lat: -34.4900, lng: -58.9800 },
-      'Tortuguitas':              { lat: -34.4700, lng: -58.8300 },
-      'Villa Rosa':               { lat: -34.4100, lng: -58.9300 },
-      'El Cazador':               { lat: -34.4500, lng: -58.9900 },
-      'Pilar del Este':           { lat: -34.4200, lng: -58.8800 },
-      'Manzone':                  { lat: -34.4200, lng: -58.9600 },
-      'Laguna de los Coipos':     { lat: -34.4300, lng: -58.9100 },
-      'La Reserva Cardales':      { lat: -34.3700, lng: -58.9900 },
-      'Astilleros':                     { lat: -34.4650, lng: -58.8600 },
-      'Puertos (CC) — acceso Pilar':   { lat: -34.3600, lng: -58.8750 },
-    }
-  },
-  'Pacheco / Don Torcuato': {
-    color: '#795548',
-    barrios: {
-      'General Pacheco':          { lat: -34.4594, lng: -58.6456 },
-      'Don Torcuato':             { lat: -34.4773, lng: -58.6500 },
-      'El Talar de Pacheco':      { lat: -34.4417, lng: -58.6403 },
-      'Los Polvorines':           { lat: -34.5050, lng: -58.7000 },
-      'Grand Bourg':              { lat: -34.4850, lng: -58.7200 },
-      'Muñiz':                    { lat: -34.5250, lng: -58.7050 },
-      'Tortuguitas Norte':        { lat: -34.4550, lng: -58.7200 },
-      'José León Suárez':         { lat: -34.5250, lng: -58.5700 },
-    }
-  }
+const ZONE_COLORS = {
+  'San Isidro':  '#1565C0',
+  'San Fernando':'#6A1B9A',
+  'Tigre':       '#E65100',
+  'Escobar':     '#2E7D32',
+  'Pilar':       '#C62828',
+};
+
+/* ========================================
+   BARRIOS POR ZONA (partido real)
+   ======================================== */
+const BARRIOS = {
+  'San Isidro': [
+    { nombre: 'Boating Club',                    lat: -34.4600, lng: -58.5150 },
+    { nombre: 'Los Altos de San Isidro',         lat: -34.4580, lng: -58.5620 },
+    { nombre: 'Newbery',                         lat: -34.4500, lng: -58.5500 },
+    { nombre: 'La Horqueta',                     lat: -34.4680, lng: -58.5580 },
+    { nombre: 'Beccar (abierto)',                lat: -34.4550, lng: -58.5450 },
+    { nombre: 'Martínez (abierto)',              lat: -34.4883, lng: -58.5119 },
+    { nombre: 'Acassuso (abierto)',              lat: -34.4633, lng: -58.5167 },
+    { nombre: 'San Isidro Centro (abierto)',     lat: -34.4717, lng: -58.5271 },
+    { nombre: 'Boulogne (abierto)',              lat: -34.4983, lng: -58.5633 },
+  ],
+  'San Fernando': [
+    { nombre: 'San Isidro Labrador',             lat: -34.4050, lng: -58.6050 },
+    { nombre: 'Altamira',                        lat: -34.4200, lng: -58.5900 },
+    { nombre: 'El Remanso',                      lat: -34.4100, lng: -58.5900 },
+    { nombre: 'Las Victorias',                   lat: -34.4420, lng: -58.5680 },
+    { nombre: 'Windbells',                       lat: -34.4150, lng: -58.5780 },
+    { nombre: 'San Fernando Centro (abierto)',   lat: -34.4436, lng: -58.5590 },
+    { nombre: 'Victoria (abierto)',              lat: -34.4600, lng: -58.5200 },
+    { nombre: 'Virreyes (abierto)',              lat: -34.4150, lng: -58.5800 },
+  ],
+  'Tigre': [
+    { nombre: 'Nordelta — Los Castores',         lat: -34.4020, lng: -58.6870 },
+    { nombre: 'Nordelta — La Isla',              lat: -34.3980, lng: -58.6900 },
+    { nombre: 'Nordelta — Islas del Golf',       lat: -34.3950, lng: -58.6950 },
+    { nombre: 'Nordelta — El Cantón',            lat: -34.4050, lng: -58.6830 },
+    { nombre: 'Nordelta — Los Tulipanes',        lat: -34.3870, lng: -58.7000 },
+    { nombre: 'Nordelta — Los Sauces',           lat: -34.3980, lng: -58.6860 },
+    { nombre: 'Nordelta — La Comarca',           lat: -34.4020, lng: -58.6920 },
+    { nombre: 'Nordelta — El Araza',             lat: -34.3930, lng: -58.6890 },
+    { nombre: 'Puertos del Lago',                lat: -34.3720, lng: -58.7100 },
+    { nombre: 'Santa Catalina',                  lat: -34.4200, lng: -58.6750 },
+    { nombre: 'Santa Clara',                     lat: -34.4150, lng: -58.6800 },
+    { nombre: 'San Isidro Labrador (Villanueva)',lat: -34.3900, lng: -58.7050 },
+    { nombre: 'Santa María de Tigre',            lat: -34.4100, lng: -58.6700 },
+    { nombre: 'Altamira (Eidico)',               lat: -34.4050, lng: -58.6650 },
+    { nombre: 'San Sebastián',                   lat: -34.4350, lng: -58.6700 },
+    { nombre: 'Álvanueva',                       lat: -34.3850, lng: -58.7150 },
+    { nombre: 'La Querencia',                    lat: -34.4450, lng: -58.6500 },
+    { nombre: 'El Conquistador',                 lat: -34.4200, lng: -58.6500 },
+    { nombre: 'Santa Bárbara',                   lat: -34.4300, lng: -58.6600 },
+    { nombre: 'Tigre Centro (abierto)',          lat: -34.4264, lng: -58.5797 },
+    { nombre: 'General Pacheco (abierto)',       lat: -34.4540, lng: -58.6478 },
+    { nombre: 'Benavidez (abierto)',             lat: -34.3780, lng: -58.7100 },
+    { nombre: 'El Talar (abierto)',              lat: -34.4650, lng: -58.6350 },
+  ],
+  'Escobar': [
+    { nombre: 'Puertos — sector Escobar',        lat: -34.3620, lng: -58.7480 },
+    { nombre: 'Villanueva',                      lat: -34.3700, lng: -58.7200 },
+    { nombre: 'Haras del Sur',                   lat: -34.3850, lng: -58.7300 },
+    { nombre: 'Fincas de Maschwitz',             lat: -34.3750, lng: -58.7700 },
+    { nombre: 'Grand Bell',                      lat: -34.3650, lng: -58.7850 },
+    { nombre: 'Las Praderas de Escobar',         lat: -34.3600, lng: -58.8050 },
+    { nombre: 'Los Robles de Escobar',           lat: -34.3550, lng: -58.8200 },
+    { nombre: 'Acacias Blancas',                 lat: -34.3800, lng: -58.7650 },
+    { nombre: 'Loma Verde',                      lat: -34.3500, lng: -58.7900 },
+    { nombre: 'Belén de Escobar (abierto)',      lat: -34.3480, lng: -58.7960 },
+    { nombre: 'Ingeniero Maschwitz (abierto)',   lat: -34.3900, lng: -58.7600 },
+    { nombre: 'Maquinista Savio (abierto)',      lat: -34.3250, lng: -58.8200 },
+    { nombre: 'Open Door (abierto)',             lat: -34.3100, lng: -58.8900 },
+  ],
+  'Pilar': [
+    { nombre: 'Puertos — sector Pilar',          lat: -34.3580, lng: -58.8200 },
+    { nombre: 'Highland Park',                   lat: -34.4250, lng: -58.8500 },
+    { nombre: 'Tortugas Country Club',           lat: -34.4180, lng: -58.8450 },
+    { nombre: 'San Sebastián',                   lat: -34.4500, lng: -58.9100 },
+    { nombre: 'Santa Bárbara',                   lat: -34.4300, lng: -58.8800 },
+    { nombre: 'El Cantón',                       lat: -34.3950, lng: -58.8950 },
+    { nombre: 'Los Pilares',                     lat: -34.4400, lng: -58.9200 },
+    { nombre: 'Estancias del Pilar',             lat: -34.4150, lng: -58.9200 },
+    { nombre: 'Los Potrillos',                   lat: -34.4700, lng: -58.9450 },
+    { nombre: 'Fincas de Santa Bárbara',         lat: -34.4200, lng: -58.8950 },
+    { nombre: 'Terralagos',                      lat: -34.3680, lng: -58.8700 },
+    { nombre: 'Pilar del Lago',                  lat: -34.3750, lng: -58.8850 },
+    { nombre: 'Pilar del Este',                  lat: -34.4400, lng: -58.8700 },
+    { nombre: 'Los Aromos',                      lat: -34.4100, lng: -58.9000 },
+    { nombre: 'Ayres de Pilar',                  lat: -34.4350, lng: -58.9350 },
+    { nombre: 'San Matías',                      lat: -34.4600, lng: -58.9250 },
+    { nombre: 'Lagos del Norte',                 lat: -34.3800, lng: -58.9100 },
+    { nombre: 'Lagoon Pilar',                    lat: -34.3900, lng: -58.9000 },
+    { nombre: 'Pilar Centro (abierto)',          lat: -34.4588, lng: -58.9118 },
+    { nombre: 'Del Viso (abierto)',              lat: -34.4050, lng: -58.9350 },
+    { nombre: 'Derqui (abierto)',                lat: -34.4900, lng: -58.8800 },
+  ],
 };
 
 /* ========================================
@@ -261,7 +244,7 @@ function formatARS(n) { return Number(n).toLocaleString('es-AR'); }
 function formatUSD(n) { return 'USD ' + Number(n).toLocaleString('es-AR'); }
 
 function createMarkerIcon(zona, pricePerM2) {
-  const zoneColor = ZONE_DATA[zona]?.color || '#555';
+  const zoneColor = ZONE_COLORS[zona] || '#555';
   const dotColor  = priceM2DotColor(pricePerM2);
   const label     = pricePerM2
     ? `USD ${Math.round(pricePerM2).toLocaleString('es-AR')}/m²`
@@ -285,7 +268,7 @@ function createMarkerIcon(zona, pricePerM2) {
 function buildPopupHTML(id, prop) {
   const pricePerM2 = prop.m2_cubiertos > 0 ? prop.precio_usd / prop.m2_cubiertos : null;
   const cls        = priceM2Class(pricePerM2);
-  const zoneColor  = ZONE_DATA[prop.zona]?.color || '#555';
+  const zoneColor  = ZONE_COLORS[prop.zona] || '#555';
 
   return `<div class="popup-inner">
     <h4>${prop.nombre || prop.barrio || 'Sin nombre'}</h4>
@@ -413,14 +396,7 @@ function deleteProperty(id) {
    FORM INITIALIZATION
    ======================================== */
 function initForm() {
-  // Populate zone select
   const zonaEl = document.getElementById('f-zona');
-  Object.keys(ZONE_DATA).sort().forEach(zona => {
-    const opt = document.createElement('option');
-    opt.value = zona;
-    opt.textContent = zona;
-    zonaEl.appendChild(opt);
-  });
 
   // Zone → barrio cascade
   zonaEl.addEventListener('change', () => {
@@ -428,16 +404,16 @@ function initForm() {
     const barrioEl = document.getElementById('f-barrio');
     barrioEl.innerHTML = '';
 
-    if (zona && ZONE_DATA[zona]) {
+    if (zona && BARRIOS[zona]) {
       const placeholder = document.createElement('option');
       placeholder.value = '';
       placeholder.textContent = '— Seleccionar barrio —';
       barrioEl.appendChild(placeholder);
 
-      Object.keys(ZONE_DATA[zona].barrios).sort().forEach(barrio => {
+      BARRIOS[zona].map(b => b.nombre).sort().forEach(nombre => {
         const opt = document.createElement('option');
-        opt.value = barrio;
-        opt.textContent = barrio;
+        opt.value = nombre;
+        opt.textContent = nombre;
         barrioEl.appendChild(opt);
       });
       barrioEl.disabled = false;
@@ -463,7 +439,7 @@ function handleFormSubmit(e) {
 
   if (!zona || !barrio) { showToast('Seleccioná zona y barrio', 'error'); return; }
 
-  const coords = ZONE_DATA[zona]?.barrios[barrio];
+  const coords = BARRIOS[zona]?.find(b => b.nombre === barrio);
   if (!coords)           { showToast('Coordenadas no encontradas', 'error'); return; }
 
   // Small random jitter so multiple props in same barrio don't stack exactly
@@ -526,7 +502,7 @@ function renderList() {
       ? prop.precio_usd / prop.m2_cubiertos
       : null;
     const cls       = priceM2Class(pricePerM2);
-    const dotColor  = ZONE_DATA[prop.zona]?.color || '#888';
+    const dotColor  = ZONE_COLORS[prop.zona] || '#888';
     const m2label   = pricePerM2
       ? `USD ${Math.round(pricePerM2).toLocaleString('es-AR')}/m²`
       : '';
@@ -610,7 +586,7 @@ function renderStats() {
       </thead>
       <tbody>
         ${rows.map((r, i) => {
-          const color = ZONE_DATA[r.zona]?.color || '#888';
+          const color = ZONE_COLORS[r.zona] || '#888';
           return `<tr>
             <td><span class="rank-badge ${rankClass(i)}">${i+1}</span></td>
             <td>
@@ -628,9 +604,9 @@ function renderStats() {
     </table>
 
     <div class="stats-separator">Leyenda de zonas</div>
-    ${Object.entries(ZONE_DATA).map(([zona, d]) => `
+    ${Object.entries(ZONE_COLORS).map(([zona, color]) => `
       <div class="zone-cell" style="margin-bottom:8px">
-        <span class="zone-cell-dot" style="background:${d.color}"></span>
+        <span class="zone-cell-dot" style="background:${color}"></span>
         <span style="font-size:12px">${zona}</span>
       </div>`).join('')}
   `;
@@ -666,9 +642,9 @@ function importExcel(file) {
         const tipo   = String(row.tipo   || '').trim().toLowerCase();
 
         if (!zona || !barrio || !tipo)  { errors++; return; }
-        if (!ZONE_DATA[zona])           { errors++; return; }
+        if (!BARRIOS[zona])             { errors++; return; }
 
-        const coords = ZONE_DATA[zona].barrios[barrio];
+        const coords = BARRIOS[zona].find(b => b.nombre === barrio);
         if (!coords)                    { errors++; return; }
 
         const jitter = () => (Math.random() - 0.5) * 0.005;
@@ -736,7 +712,7 @@ function exportExcel() {
 function downloadTemplate() {
   const example = [{
     zona:          'San Isidro',
-    barrio:        'Martínez',
+    barrio:        'Boating Club',
     tipo:          'venta',
     precio_usd:    250000,
     expensas_ars:  120000,

@@ -185,39 +185,57 @@ function initMap() {
    HEATMAP
    ======================================== */
 function toggleHeatmap() {
+  // Guard: leaflet.heat must be loaded
+  if (typeof L.heatLayer !== 'function') {
+    showToast('Heatmap no disponible: leaflet.heat no se cargó', 'error');
+    return;
+  }
+
   heatEnabled = !heatEnabled;
   const btn = document.getElementById('btn-heatmap');
   btn.classList.toggle('active', heatEnabled);
 
-  if (!heatEnabled && heatLayer) {
-    map.removeLayer(heatLayer);
-    heatLayer = null;
+  if (!heatEnabled) {
+    if (heatLayer) {
+      map.removeLayer(heatLayer);
+      heatLayer = null;
+    }
     return;
   }
-  if (heatEnabled) updateHeatmap();
+
+  // Enabling: build and add layer
+  updateHeatmap();
 }
 
 function updateHeatmap() {
-  if (!heatEnabled) return;
+  if (!heatEnabled || typeof L.heatLayer !== 'function') return;
+
+  // Remove existing layer before rebuilding
+  if (heatLayer) {
+    map.removeLayer(heatLayer);
+    heatLayer = null;
+  }
 
   const points = Object.values(properties)
     .filter(p => p.lat && p.lng && p.precio_usd > 0 && p.m2_cubiertos > 0)
     .map(p => {
-      const intensity = Math.min((p.precio_usd / p.m2_cubiertos) / 3000, 1);
-      return [p.lat, p.lng, intensity];
+      // Normalize: USD 1500/m² → 0.5, USD 3000/m² → 1.0
+      const pm2 = p.precio_usd / p.m2_cubiertos;
+      return [p.lat, p.lng, Math.min(pm2 / 3000, 1)];
     });
 
-  if (heatLayer) map.removeLayer(heatLayer);
-  heatLayer = null;
-
-  if (points.length > 0) {
-    heatLayer = L.heatLayer(points, {
-      radius: 40,
-      blur: 28,
-      maxZoom: 15,
-      gradient: { 0.35: '#4CAF50', 0.65: '#FF9800', 1.0: '#F44336' },
-    }).addTo(map);
+  if (points.length === 0) {
+    if (heatEnabled) showToast('Sin datos para el heatmap todavía', 'warning');
+    return;
   }
+
+  heatLayer = L.heatLayer(points, {
+    radius: 40,
+    blur: 25,
+    max: 1.0,
+    maxZoom: 17,
+    gradient: { 0.0: '#4CAF50', 0.5: '#FF9800', 1.0: '#F44336' },
+  }).addTo(map);
 }
 
 /* ========================================

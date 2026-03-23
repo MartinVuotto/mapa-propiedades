@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa de Propiedades — GBA Norte</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header id="header">
+    <div class="header-left">
+      <h1>Mapa GBA Norte</h1>
+      <span id="prop-count" class="prop-count">0 propiedades</span>
+    </div>
+    <div class="header-right">
+      <button id="btn-heatmap" class="btn btn-outline" onclick="toggleHeatmap()">🔥 Heatmap</button>
+      <button class="btn btn-outline" onclick="downloadTemplate()">📥 Plantilla</button>
+      <label class="btn btn-outline" for="import-file" style="cursor:pointer">📂 Importar</label>
+      <input type="file" id="import-file" accept=".xlsx,.xls" style="display:none">
+      <button class="btn btn-outline" onclick="exportExcel()">📤 Exportar</button>
+      <button id="btn-auth" class="btn btn-primary-white" onclick="promptPassword()">🔒 Ingresar</button>
+    </div>
+  </header>
+
+  <!-- ===== MAIN LAYOUT ===== -->
+  <div id="main">
+
+    <!-- Map -->
+    <div id="map"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="add" onclick="switchTab('add')">➕ Agregar</button>
+        <button class="tab-btn" data-tab="list" onclick="switchTab('list')">📋 Lista</button>
+        <button class="tab-btn" data-tab="stats" onclick="switchTab('stats')">📊 Comparar</button>
+      </div>
+
+      <!-- Tab: Agregar -->
+      <div id="tab-add" class="tab-content active">
+
+        <div id="auth-notice" class="auth-notice">
+          <div class="auth-notice-icon">🔒</div>
+          <p>Ingresá la contraseña para agregar o eliminar propiedades.</p>
+          <button class="btn btn-filled" onclick="promptPassword()">Ingresar contraseña</button>
+          <p class="auth-notice-hint">En modo lectura podés ver el mapa y todas las propiedades.</p>
+        </div>
+
+        <form id="prop-form" class="prop-form hidden" autocomplete="off">
+
+          <div class="form-group">
+            <label for="f-zona">Zona *</label>
+            <select id="f-zona" name="zona" required>
+              <option value="">— Seleccionar zona —</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="f-barrio">Barrio *</label>
+            <select id="f-barrio" name="barrio" required disabled>
+              <option value="">— Primero seleccioná la zona —</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f-tipo">Tipo *</label>
+              <select id="f-tipo" name="tipo" required>
+                <option value="">— Tipo —</option>
+                <option value="alquiler">Alquiler</option>
+                <option value="venta">Venta</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="f-ambientes">Ambientes</label>
+              <input type="number" id="f-ambientes" name="ambientes" min="1" max="20" placeholder="Cant.">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f-precio">Precio USD *</label>
+              <input type="number" id="f-precio" name="precio_usd" min="0" placeholder="0" required>
+            </div>
+            <div class="form-group">
+              <label for="f-expensas">Expensas ARS</label>
+              <input type="number" id="f-expensas" name="expensas_ars" min="0" placeholder="0">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="f-m2t">m² Totales</label>
+              <input type="number" id="f-m2t" name="m2_totales" min="1" placeholder="m²">
+            </div>
+            <div class="form-group">
+              <label for="f-m2c">m² Cubiertos *</label>
+              <input type="number" id="f-m2c" name="m2_cubiertos" min="1" placeholder="m²" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="f-nombre">Nombre / Referencia</label>
+            <input type="text" id="f-nombre" name="nombre" placeholder="Ej: Casa esquinera Nordelta">
+          </div>
+
+          <div class="form-group">
+            <label for="f-url">URL publicación</label>
+            <input type="url" id="f-url" name="url" placeholder="https://...">
+          </div>
+
+          <button type="submit" class="btn btn-filled btn-full">Agregar propiedad</button>
+        </form>
+      </div>
+
+      <!-- Tab: Lista -->
+      <div id="tab-list" class="tab-content">
+        <div class="list-header">
+          <div class="list-filter">
+            <button class="filter-btn active" data-filter="all" onclick="filterList('all')">Todos</button>
+            <button class="filter-btn" data-filter="alquiler" onclick="filterList('alquiler')">Alquiler</button>
+            <button class="filter-btn" data-filter="venta" onclick="filterList('venta')">Venta</button>
+          </div>
+          <span id="list-count" class="list-count"></span>
+        </div>
+        <div id="prop-list"></div>
+      </div>
+
+      <!-- Tab: Comparar -->
+      <div id="tab-stats" class="tab-content">
+        <div id="stats-content">
+          <div class="empty-state" style="padding:60px 20px">
+            Cargá propiedades para ver estadísticas comparativas por zona.
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- ===== PASSWORD MODAL ===== -->
+  <div id="pw-modal" class="modal-overlay hidden">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <h3>Acceso de edición</h3>
+      <p class="modal-desc">Ingresá la contraseña para agregar y eliminar propiedades. Podés cerrar esta ventana para continuar en modo lectura.</p>
+      <div class="form-group">
+        <input type="password" id="pw-input" placeholder="Contraseña" autocomplete="current-password">
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-filled" onclick="submitPassword()">Ingresar</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Ver sin contraseña</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOAST CONTAINER ===== -->
+  <div id="toast-container"></div>
+
+  <!-- ===== SCRIPTS ===== -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

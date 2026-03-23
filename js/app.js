@@ -185,6 +185,16 @@ function initMap() {
    HEATMAP
    ======================================== */
 function toggleHeatmap() {
+  // ── DIAGNÓSTICO TEMPORAL ──────────────────────────────────────────────────
+  const propsConPm2 = Object.values(properties).filter(
+    p => p.precio_usd > 0 && p.m2_cubiertos > 0
+  ).length;
+  console.log('[HEATMAP] heatEnabled (antes del toggle):', heatEnabled);
+  console.log('[HEATMAP] typeof L.heatLayer:', typeof L.heatLayer);
+  console.log('[HEATMAP] propiedades con pm2 > 0:', propsConPm2);
+  console.log('[HEATMAP] total properties:', Object.keys(properties).length);
+  // ─────────────────────────────────────────────────────────────────────────
+
   // Guard: leaflet.heat must be loaded
   if (typeof L.heatLayer !== 'function') {
     showToast('Heatmap no disponible: leaflet.heat no se cargó', 'error');

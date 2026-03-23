@@ -63,12 +63,23 @@ const ZONE_DATA = {
   'Nordelta / Benavídez': {
     color: '#00838F',
     barrios: {
-      'Nordelta':                 { lat: -34.3700, lng: -58.7000 },
-      'Benavídez':                { lat: -34.3800, lng: -58.6700 },
+      // Benavidez y alrededores
+      'Benavidez Centro':         { lat: -34.3780, lng: -58.7100 },
+      'Amarras de Benavidez':     { lat: -34.3820, lng: -58.7050 },
+      'Haras del Sur (CC)':       { lat: -34.3850, lng: -58.7300 },
+      'Puertos (CC)':             { lat: -34.3600, lng: -58.7450 },
       'Villanueva':               { lat: -34.3700, lng: -58.7200 },
-      'Los Alisos':               { lat: -34.3750, lng: -58.7100 },
+      // Nordelta — barrios internos
+      'Nordelta — El Cantón':     { lat: -34.4050, lng: -58.6830 },
+      'Nordelta — Los Alisos':    { lat: -34.3950, lng: -58.6920 },
+      'Nordelta — La Isla':       { lat: -34.4000, lng: -58.6780 },
+      'Nordelta — Torres del Lago': { lat: -34.3920, lng: -58.6950 },
+      'Nordelta — Los Tulipanes': { lat: -34.3870, lng: -58.7000 },
+      'Nordelta — Los Sauces':    { lat: -34.3980, lng: -58.6860 },
+      'Nordelta — El Araza':      { lat: -34.3930, lng: -58.6890 },
+      'Nordelta — La Comarca':    { lat: -34.4020, lng: -58.6920 },
+      // Otros barrios de la zona
       'El Condado':               { lat: -34.3600, lng: -58.7300 },
-      'El Cantón':                { lat: -34.3500, lng: -58.7400 },
       'Isla del Sol':             { lat: -34.3800, lng: -58.7500 },
       'El Naudir':                { lat: -34.3750, lng: -58.7350 },
       'Santa María de Tigre':     { lat: -34.3600, lng: -58.6900 },
@@ -86,7 +97,8 @@ const ZONE_DATA = {
       'Open Door':                { lat: -34.4050, lng: -58.8550 },
       'Zelaya':                   { lat: -34.3300, lng: -58.8700 },
       'Loma Verde':               { lat: -34.4200, lng: -58.7200 },
-      'Canning (Escobar)':        { lat: -34.3600, lng: -58.7700 },
+      'Canning (Escobar)':              { lat: -34.3600, lng: -58.7700 },
+      'Puertos (CC) — acceso Escobar': { lat: -34.3580, lng: -58.7500 },
     }
   },
   'Pilar': {
@@ -103,7 +115,8 @@ const ZONE_DATA = {
       'Manzone':                  { lat: -34.4200, lng: -58.9600 },
       'Laguna de los Coipos':     { lat: -34.4300, lng: -58.9100 },
       'La Reserva Cardales':      { lat: -34.3700, lng: -58.9900 },
-      'Astilleros':               { lat: -34.4650, lng: -58.8600 },
+      'Astilleros':                     { lat: -34.4650, lng: -58.8600 },
+      'Puertos (CC) — acceso Pilar':   { lat: -34.3600, lng: -58.8750 },
     }
   },
   'Pacheco / Don Torcuato': {

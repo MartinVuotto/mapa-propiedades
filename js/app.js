@@ -206,25 +206,33 @@ function updateHeatmap() {
 
   if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
 
+  // Usar el tipo activo; si el filtro es 'all', mostrar venta por defecto
+  const tipo = currentFilter === 'alquiler' ? 'alquiler' : 'venta';
+
   const filtered = Object.values(properties)
-    .filter(p => p.lat && p.lng && p.precio_usd > 0 && p.m2_cubiertos > 0);
+    .filter(p => p.lat && p.lng && p.precio_usd > 0 && p.m2_cubiertos > 0 && p.tipo === tipo);
 
   if (filtered.length === 0) {
     if (heatEnabled) showToast('Sin datos de precio/m² para el heatmap', 'warning');
     return;
   }
 
-  // Pasar USD/m² crudo como intensidad; 'max' hace la normalización automática.
-  // Así el punto más caro siempre aparece rojo y el más barato verde,
-  // independientemente de los valores absolutos.
-  const points = filtered.map(p => [p.lat, p.lng, p.precio_usd / p.m2_cubiertos]);
-  const maxPm2  = Math.max(...filtered.map(p => p.precio_usd / p.m2_cubiertos));
+  const pm2Values = filtered.map(p => p.precio_usd / p.m2_cubiertos);
+  const minPm2    = Math.min(...pm2Values);
+  const maxPm2    = Math.max(...pm2Values);
+  const range     = maxPm2 - minPm2;
+
+  // Normalizar: el precio/m² más bajo → 0.1 (verde), el más alto → 1.0 (rojo)
+  const points = filtered.map((p, i) => {
+    const intensity = range > 0 ? 0.1 + 0.9 * (pm2Values[i] - minPm2) / range : 0.55;
+    return [p.lat, p.lng, intensity];
+  });
 
   heatLayer = L.heatLayer(points, {
     radius:     55,
     blur:       35,
     minOpacity: 0.4,
-    max:        maxPm2,
+    max:        1.0,
     gradient:   { 0.4: '#43a047', 0.65: '#fb8c00', 1.0: '#e53935' },
   }).addTo(map);
 }
@@ -484,6 +492,7 @@ function filterList(filter) {
     btn.classList.toggle('active', btn.dataset.filter === filter)
   );
   renderList();
+  updateHeatmap();
 }
 
 function renderList() {

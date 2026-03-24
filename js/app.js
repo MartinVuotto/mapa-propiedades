@@ -330,9 +330,13 @@ function addMarker(id, prop) {
 }
 
 function applyMarkerFilter() {
+  console.log('applyMarkerFilter ejecutado, filtro:', currentFilter);
+  console.log('total markers:', Object.keys(markers).length);
+  console.log('total properties:', Object.keys(properties).length);
   Object.entries(markers).forEach(([id, marker]) => {
     const prop    = properties[id];
     const visible = !prop || currentFilter === 'all' || prop.tipo === currentFilter;
+    console.log('marker id:', id, '| prop tipo:', prop?.tipo, '| visible:', visible, '| en mapa:', map.hasLayer(marker));
     if (visible) {
       if (!map.hasLayer(marker)) marker.addTo(map);
     } else {

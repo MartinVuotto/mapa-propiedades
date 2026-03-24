@@ -322,8 +322,23 @@ function addMarker(id, prop) {
     maxWidth: 290,
     minWidth: 220,
   });
-  marker.addTo(map);
+
+  // Solo agregar al mapa si el filtro activo lo incluye
+  const visible = currentFilter === 'all' || prop.tipo === currentFilter;
+  if (visible) marker.addTo(map);
   markers[id] = marker;
+}
+
+function applyMarkerFilter() {
+  Object.entries(markers).forEach(([id, marker]) => {
+    const prop    = properties[id];
+    const visible = !prop || currentFilter === 'all' || prop.tipo === currentFilter;
+    if (visible) {
+      if (!map.hasLayer(marker)) marker.addTo(map);
+    } else {
+      if (map.hasLayer(marker)) map.removeLayer(marker);
+    }
+  });
 }
 
 function removeMarker(id) {
@@ -492,6 +507,7 @@ function filterList(filter) {
     btn.classList.toggle('active', btn.dataset.filter === filter)
   );
   renderList();
+  applyMarkerFilter();
   updateHeatmap();
 }
 

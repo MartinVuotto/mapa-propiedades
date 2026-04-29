@@ -63,6 +63,8 @@ const BARRIOS = {
     { nombre: 'Altamira (Eidico)',               lat: -34.4050, lng: -58.6650 },
     { nombre: 'San Sebastián',                   lat: -34.4350, lng: -58.6700 },
     { nombre: 'Álvanueva',                       lat: -34.3850, lng: -58.7150 },
+    { nombre: 'San Agustín',                     lat: -34.3941, lng: -58.6969 },
+    { nombre: 'San Benito',                      lat: -34.3796, lng: -58.7183 },
     { nombre: 'La Querencia',                    lat: -34.4450, lng: -58.6500 },
     { nombre: 'El Conquistador',                 lat: -34.4200, lng: -58.6500 },
     { nombre: 'Santa Bárbara',                   lat: -34.4300, lng: -58.6600 },
@@ -278,7 +280,7 @@ function createMarkerIcon(zona, pricePerM2) {
 }
 
 function buildPopupHTML(id, prop) {
-  const pricePerM2 = prop.m2_cubiertos > 0 ? prop.precio_usd / prop.m2_cubiertos : null;
+  const pricePerM2 = (prop.m2_cubiertos > 0 && !prop.precio_consultar) ? prop.precio_usd / prop.m2_cubiertos : null;
   const cls        = priceM2Class(pricePerM2);
   const zoneColor  = ZONE_COLORS[prop.zona] || '#555';
 
@@ -291,7 +293,7 @@ function buildPopupHTML(id, prop) {
       ${prop.zona}
     </p>
     <p><strong>Barrio:</strong> ${prop.barrio}</p>
-    <p><strong>Precio:</strong> ${formatUSD(prop.precio_usd)}</p>
+    <p><strong>Precio:</strong> ${prop.precio_consultar ? 'Consultar' : formatUSD(prop.precio_usd)}</p>
     ${prop.expensas_ars ? `<p><strong>Expensas:</strong> ARS ${formatARS(prop.expensas_ars)}</p>` : ''}
     <p>
       <strong>m² tot.:</strong> ${prop.m2_totales || '—'} &nbsp;
@@ -314,7 +316,7 @@ function buildPopupHTML(id, prop) {
    ======================================== */
 function addMarker(id, prop) {
   if (!prop.lat || !prop.lng) return;
-  const pricePerM2 = prop.m2_cubiertos > 0 ? prop.precio_usd / prop.m2_cubiertos : null;
+  const pricePerM2 = (prop.m2_cubiertos > 0 && !prop.precio_consultar) ? prop.precio_usd / prop.m2_cubiertos : null;
   const icon       = createMarkerIcon(prop.zona, pricePerM2);
   const marker     = L.marker([prop.lat, prop.lng], { icon, title: prop.nombre || prop.barrio });
 
@@ -531,7 +533,7 @@ function renderList() {
   }
 
   listEl.innerHTML = entries.map(([id, prop]) => {
-    const pricePerM2 = prop.m2_cubiertos > 0
+    const pricePerM2 = (prop.m2_cubiertos > 0 && !prop.precio_consultar)
       ? prop.precio_usd / prop.m2_cubiertos
       : null;
     const cls       = priceM2Class(pricePerM2);
@@ -547,7 +549,7 @@ function renderList() {
         <div class="prop-sub">${prop.zona} · ${prop.barrio} · ${prop.tipo}</div>
       </div>
       <div class="prop-right">
-        <div class="prop-price">${formatUSD(prop.precio_usd)}</div>
+        <div class="prop-price">${prop.precio_consultar ? 'Consultar' : formatUSD(prop.precio_usd)}</div>
         ${m2label ? `<div class="prop-m2 ${cls}">${m2label}</div>` : ''}
       </div>
       ${isAuthenticated
@@ -677,8 +679,19 @@ function importExcel(file) {
         if (!zona || !barrio || !tipo)  { errors++; return; }
         if (!BARRIOS[zona])             { errors++; return; }
 
-        const coords = BARRIOS[zona].find(b => b.nombre === barrio);
-        if (!coords)                    { errors++; return; }
+        let coords = BARRIOS[zona].find(b => b.nombre === barrio);
+        if (!coords) {
+          // Barrio nuevo: usar centroide de zona y registrarlo en memoria para esta sesión
+          const bs  = BARRIOS[zona];
+          const lat = bs.reduce((s, b) => s + b.lat, 0) / bs.length;
+          const lng = bs.reduce((s, b) => s + b.lng, 0) / bs.length;
+          coords = { nombre: barrio, lat, lng };
+          BARRIOS[zona].push(coords);
+        }
+
+        const precioRaw          = String(row.precio_usd ?? '').trim();
+        const esPrecioConsultar  = !precioRaw || isNaN(parseFloat(precioRaw));
+        const precio_usd         = esPrecioConsultar ? 0 : parseFloat(precioRaw);
 
         const jitter = () => (Math.random() - 0.5) * 0.005;
 
@@ -686,7 +699,8 @@ function importExcel(file) {
           zona,
           barrio,
           tipo:         tipo === 'alquiler' ? 'alquiler' : 'venta',
-          precio_usd:   parseFloat(row.precio_usd)   || 0,
+          precio_usd,
+          ...(esPrecioConsultar && { precio_consultar: true }),
           expensas_ars: parseFloat(row.expensas_ars)  || 0,
           m2_totales:   parseFloat(row.m2_totales)    || 0,
           m2_cubiertos: parseFloat(row.m2_cubiertos)  || 0,

@@ -170,21 +170,12 @@ function initMap() {
     maxZoom: 19,
   }).addTo(map);
 
-  // Price/m² legend
+  // Price/m² legend (content updated dynamically via updateLegend())
   const legend = L.control({ position: 'bottomleft' });
   legend.onAdd = () => {
     const div = L.DomUtil.create('div', 'map-legend');
-    div.innerHTML = `
-      <strong>USD/m² cubierto</strong>
-      <div class="legend-row"><span class="legend-dot" style="background:#1565c0"></span> &lt; 900</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#0288d1"></span> 900 – 1.100</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#26a69a"></span> 1.100 – 1.300</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#66bb6a"></span> 1.300 – 1.600</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#fdd835"></span> 1.600 – 2.000</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#ffa726"></span> 2.000 – 2.500</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#ef5350"></span> 2.500 – 3.000</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#880e4f"></span> &gt; 3.000</div>
-    `;
+    div.id = 'price-legend';
+    div.innerHTML = _legendHTML('venta');
     return div;
   };
   legend.addTo(map);
@@ -207,16 +198,49 @@ const PRICE_SCALE_VENTA = [
 ];
 
 const PRICE_SCALE_ALQUILER = [
-  [  5, '#80deea'],     // celeste claro  < 5
-  [  8, '#26c6da'],     // cyan           5–8
-  [ 12, '#5e35b1'],     // violeta        8–12
-  [ 18, '#d81b60'],     // rosa           12–18
-  [Infinity, '#880e4f'] // bordo          > 18
+  [  5, '#1565c0'],     // azul      < 5
+  [  8, '#26a69a'],     // teal      5–8
+  [ 12, '#66bb6a'],     // verde     8–12
+  [ 18, '#fdd835'],     // amarillo  12–18
+  [Infinity, '#ef5350'] // rojo      > 18
 ];
 
 function _pm2ToColor(pm2, tipo) {
   const scale = tipo === 'venta' ? PRICE_SCALE_VENTA : PRICE_SCALE_ALQUILER;
   return scale.find(([threshold]) => pm2 < threshold)[1];
+}
+
+function _legendRow(color, label) {
+  return `<div class="legend-row"><span class="legend-dot" style="background:${color}"></span> ${label}</div>`;
+}
+
+function _legendHTML(tipo) {
+  if (tipo === 'alquiler') {
+    return `<strong>Alquiler · USD/m²</strong>`
+      + _legendRow('#1565c0', '&lt; 5')
+      + _legendRow('#26a69a', '5 – 8')
+      + _legendRow('#66bb6a', '8 – 12')
+      + _legendRow('#fdd835', '12 – 18')
+      + _legendRow('#ef5350', '&gt; 18');
+  }
+  return `<strong>Venta · USD/m²</strong>`
+    + _legendRow('#1565c0', '&lt; 900')
+    + _legendRow('#0288d1', '900 – 1.100')
+    + _legendRow('#26a69a', '1.100 – 1.300')
+    + _legendRow('#66bb6a', '1.300 – 1.600')
+    + _legendRow('#fdd835', '1.600 – 2.000')
+    + _legendRow('#ffa726', '2.000 – 2.500')
+    + _legendRow('#ef5350', '2.500 – 3.000')
+    + _legendRow('#880e4f', '&gt; 3.000');
+}
+
+function updateLegend() {
+  const el = document.getElementById('price-legend');
+  if (!el) return;
+  // Alquiler activo (y venta no): mostrar escala alquiler
+  el.innerHTML = (heatAlqEnabled && !heatVentaEnabled)
+    ? _legendHTML('alquiler')
+    : _legendHTML('venta');
 }
 
 function _buildPriceLayer(tipo) {
@@ -248,9 +272,10 @@ function toggleHeatmapVenta() {
   document.getElementById('btn-heatmap-venta').classList.toggle('active', heatVentaEnabled);
   if (!heatVentaEnabled) {
     if (heatVentaLayer) { map.removeLayer(heatVentaLayer); heatVentaLayer = null; }
-    return;
+  } else {
+    updateHeatmapVenta();
   }
-  updateHeatmapVenta();
+  updateLegend();
 }
 
 function toggleHeatmapAlquiler() {
@@ -258,9 +283,10 @@ function toggleHeatmapAlquiler() {
   document.getElementById('btn-heatmap-alquiler').classList.toggle('active', heatAlqEnabled);
   if (!heatAlqEnabled) {
     if (heatAlqLayer) { map.removeLayer(heatAlqLayer); heatAlqLayer = null; }
-    return;
+  } else {
+    updateHeatmapAlquiler();
   }
-  updateHeatmapAlquiler();
+  updateLegend();
 }
 
 function updateHeatmapVenta() {

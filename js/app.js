@@ -117,9 +117,11 @@ const BARRIOS = {
 /* ========================================
    STATE
    ======================================== */
-let map         = null;
-let heatLayer   = null;
-let heatEnabled = false;
+let map              = null;
+let heatVentaLayer   = null;
+let heatVentaEnabled = false;
+let heatAlqLayer     = null;
+let heatAlqEnabled   = false;
 
 let properties  = {};   // { firebaseId: propertyObject }
 let markers     = {};   // { firebaseId: L.marker }
@@ -186,57 +188,70 @@ function initMap() {
 /* ========================================
    HEATMAP
    ======================================== */
-function toggleHeatmap() {
-  if (typeof L.heatLayer !== 'function') {
-    showToast('Heatmap no disponible: leaflet.heat no se cargó', 'error');
-    return;
-  }
-
-  heatEnabled = !heatEnabled;
-  document.getElementById('btn-heatmap').classList.toggle('active', heatEnabled);
-
-  if (!heatEnabled) {
-    if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
-    return;
-  }
-
-  updateHeatmap();
-}
-
-function updateHeatmap() {
-  if (!heatEnabled || typeof L.heatLayer !== 'function') return;
-
-  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
-
-  // Usar el tipo activo; si el filtro es 'all', mostrar venta por defecto
-  const tipo = currentFilter === 'alquiler' ? 'alquiler' : 'venta';
-
+function _buildHeatPoints(tipo) {
   const filtered = Object.values(properties)
     .filter(p => p.lat && p.lng && p.precio_usd > 0 && p.m2_cubiertos > 0 && p.tipo === tipo);
-
-  if (filtered.length === 0) {
-    if (heatEnabled) showToast('Sin datos de precio/m² para el heatmap', 'warning');
-    return;
-  }
-
+  if (!filtered.length) return null;
   const pm2Values = filtered.map(p => p.precio_usd / p.m2_cubiertos);
   const minPm2    = Math.min(...pm2Values);
-  const maxPm2    = Math.max(...pm2Values);
-  const range     = maxPm2 - minPm2;
-
-  // Normalizar: el precio/m² más bajo → 0.1 (verde), el más alto → 1.0 (rojo)
-  const points = filtered.map((p, i) => {
+  const range     = Math.max(...pm2Values) - minPm2;
+  return filtered.map((p, i) => {
     const intensity = range > 0 ? 0.1 + 0.9 * (pm2Values[i] - minPm2) / range : 0.55;
     return [p.lat, p.lng, intensity];
   });
+}
 
-  heatLayer = L.heatLayer(points, {
-    radius:     55,
-    blur:       35,
-    minOpacity: 0.4,
-    max:        1.0,
-    gradient:   { 0.4: '#43a047', 0.65: '#fb8c00', 1.0: '#e53935' },
+function toggleHeatmapVenta() {
+  if (typeof L.heatLayer !== 'function') {
+    showToast('Heatmap no disponible: leaflet.heat no se cargó', 'error'); return;
+  }
+  heatVentaEnabled = !heatVentaEnabled;
+  document.getElementById('btn-heatmap-venta').classList.toggle('active', heatVentaEnabled);
+  if (!heatVentaEnabled) {
+    if (heatVentaLayer) { map.removeLayer(heatVentaLayer); heatVentaLayer = null; }
+    return;
+  }
+  updateHeatmapVenta();
+}
+
+function toggleHeatmapAlquiler() {
+  if (typeof L.heatLayer !== 'function') {
+    showToast('Heatmap no disponible: leaflet.heat no se cargó', 'error'); return;
+  }
+  heatAlqEnabled = !heatAlqEnabled;
+  document.getElementById('btn-heatmap-alquiler').classList.toggle('active', heatAlqEnabled);
+  if (!heatAlqEnabled) {
+    if (heatAlqLayer) { map.removeLayer(heatAlqLayer); heatAlqLayer = null; }
+    return;
+  }
+  updateHeatmapAlquiler();
+}
+
+function updateHeatmapVenta() {
+  if (!heatVentaEnabled || typeof L.heatLayer !== 'function') return;
+  if (heatVentaLayer) { map.removeLayer(heatVentaLayer); heatVentaLayer = null; }
+  const points = _buildHeatPoints('venta');
+  if (!points) { showToast('Sin datos de venta para el heatmap', 'warning'); return; }
+  heatVentaLayer = L.heatLayer(points, {
+    radius: 55, blur: 35, minOpacity: 0.4, max: 1.0,
+    gradient: { 0.4: '#43a047', 0.65: '#fb8c00', 1.0: '#e53935' },
   }).addTo(map);
+}
+
+function updateHeatmapAlquiler() {
+  if (!heatAlqEnabled || typeof L.heatLayer !== 'function') return;
+  if (heatAlqLayer) { map.removeLayer(heatAlqLayer); heatAlqLayer = null; }
+  const points = _buildHeatPoints('alquiler');
+  if (!points) { showToast('Sin datos de alquiler para el heatmap', 'warning'); return; }
+  heatAlqLayer = L.heatLayer(points, {
+    radius: 55, blur: 35, minOpacity: 0.4, max: 1.0,
+    gradient: { 0.4: '#0288d1', 0.65: '#7b1fa2', 1.0: '#e91e63' },
+  }).addTo(map);
+}
+
+function updateHeatmaps() {
+  updateHeatmapVenta();
+  updateHeatmapAlquiler();
 }
 
 /* ========================================
@@ -376,7 +391,7 @@ function setupFirebaseSync() {
     if (currentTab === 'list')  renderList();
     else if (currentTab === 'stats') renderStats();
     else { renderList(); renderStats(); } // keep both fresh
-    updateHeatmap();
+    updateHeatmaps();
   });
 
   propsRef.on('child_removed', snapshot => {
@@ -386,7 +401,7 @@ function setupFirebaseSync() {
     updateCount();
     renderList();
     renderStats();
-    updateHeatmap();
+    updateHeatmaps();
   });
 
   propsRef.on('child_changed', snapshot => {
@@ -397,7 +412,7 @@ function setupFirebaseSync() {
     addMarker(id, prop);
     renderList();
     renderStats();
-    updateHeatmap();
+    updateHeatmaps();
   });
 }
 
@@ -514,7 +529,6 @@ function filterList(filter) {
   );
   renderList();
   applyMarkerFilter();
-  updateHeatmap();
 }
 
 function renderList() {

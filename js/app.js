@@ -442,6 +442,44 @@ function updateCount() {
 }
 
 /* ========================================
+   DEDUPLICATION
+   ======================================== */
+// Clave única: usa la URL si existe, si no zona+barrio+tipo+precio+m2
+function _propKey(prop) {
+  const url = String(prop.url || '').trim().toLowerCase();
+  if (url) return url;
+  return [prop.zona, prop.barrio, prop.tipo, prop.precio_usd, prop.m2_cubiertos].join('|');
+}
+
+function deduplicateAll() {
+  if (!isAuthenticated) { showToast('Ingresá la contraseña primero', 'error'); return; }
+
+  const seen     = new Map(); // key → id a conservar
+  const toDelete = [];
+
+  // Ordenar por timestamp ascendente → conservar la entrada más antigua
+  const sorted = Object.entries(properties)
+    .sort(([, a], [, b]) => (a.timestamp || 0) - (b.timestamp || 0));
+
+  for (const [id, prop] of sorted) {
+    const key = _propKey(prop);
+    if (seen.has(key)) {
+      toDelete.push(id);
+    } else {
+      seen.set(key, id);
+    }
+  }
+
+  if (!toDelete.length) { showToast('No hay duplicados', 'info'); return; }
+
+  if (!confirm(`Se encontraron ${toDelete.length} propiedad${toDelete.length > 1 ? 'es duplicadas' : ' duplicada'}. ¿Eliminarlas?`)) return;
+
+  Promise.all(toDelete.map(id => propsRef.child(id).remove()))
+    .then(() => showToast(`${toDelete.length} duplicado${toDelete.length > 1 ? 's' : ''} eliminado${toDelete.length > 1 ? 's' : ''}`, 'success'))
+    .catch(err => showToast('Error: ' + err.message, 'error'));
+}
+
+/* ========================================
    PROPERTY CRUD
    ======================================== */
 function addProperty(data) {
@@ -702,7 +740,7 @@ function importExcel(file) {
 
       if (!rows.length) { showToast('El archivo está vacío', 'error'); return; }
 
-      let imported = 0, errors = 0;
+      let imported = 0, skipped = 0, errors = 0;
 
       rows.forEach(row => {
         const zona   = String(row.zona   || '').trim();
@@ -725,6 +763,14 @@ function importExcel(file) {
         const precioRaw          = String(row.precio_usd ?? '').trim();
         const esPrecioConsultar  = !precioRaw || isNaN(parseFloat(precioRaw));
         const precio_usd         = esPrecioConsultar ? 0 : parseFloat(precioRaw);
+        const m2_cubiertos       = parseFloat(row.m2_cubiertos) || 0;
+        const urlClean           = String(row.url || '').trim();
+
+        // Saltar si ya existe una propiedad idéntica
+        const candidateKey = _propKey({ zona, barrio, tipo: tipo === 'alquiler' ? 'alquiler' : 'venta', precio_usd, m2_cubiertos, url: urlClean });
+        if (Object.values(properties).some(p => _propKey(p) === candidateKey)) {
+          skipped++; return;
+        }
 
         const jitter = () => (Math.random() - 0.5) * 0.005;
 
@@ -736,10 +782,10 @@ function importExcel(file) {
           ...(esPrecioConsultar && { precio_consultar: true }),
           expensas_ars: parseFloat(row.expensas_ars)  || 0,
           m2_totales:   parseFloat(row.m2_totales)    || 0,
-          m2_cubiertos: parseFloat(row.m2_cubiertos)  || 0,
+          m2_cubiertos,
           ambientes:    parseInt(row.ambientes)        || 0,
           nombre:       String(row.nombre || '').trim(),
-          url:          String(row.url    || '').trim(),
+          url:          urlClean,
           lat:          coords.lat + jitter(),
           lng:          coords.lng + jitter(),
           timestamp:    Date.now(),
@@ -747,10 +793,10 @@ function importExcel(file) {
         imported++;
       });
 
-      showToast(
-        `Importadas: ${imported}${errors ? ` · ${errors} con errores` : ''}`,
-        imported > 0 ? 'success' : 'error'
-      );
+      const parts = [`Importadas: ${imported}`];
+      if (skipped) parts.push(`${skipped} ya existían`);
+      if (errors)  parts.push(`${errors} con errores`);
+      showToast(parts.join(' · '), imported > 0 ? 'success' : (skipped > 0 ? 'info' : 'error'));
     } catch (err) {
       showToast('Error al leer archivo: ' + err.message, 'error');
     }
@@ -860,6 +906,9 @@ function authenticate(silent) {
   btn.textContent  = '✓ Autenticado';
   btn.className    = 'btn btn-primary-white authed';
   btn.onclick      = null;
+
+  // Show dedup button
+  document.getElementById('btn-dedup').classList.remove('hidden');
 
   // Refresh list to expose delete buttons
   renderList();

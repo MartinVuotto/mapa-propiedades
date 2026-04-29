@@ -22,6 +22,7 @@
       <label class="btn btn-outline" for="import-file" style="cursor:pointer">📂 Importar</label>
       <input type="file" id="import-file" accept=".xlsx,.xls" style="display:none">
       <button class="btn btn-outline" onclick="exportExcel()">📤 Exportar</button>
+      <button id="btn-dedup" class="btn btn-outline hidden" onclick="deduplicateAll()">🧹 Deduplicar</button>
       <button id="btn-auth" class="btn btn-primary-white" onclick="promptPassword()">🔒 Ingresar</button>
     </div>
   </header>

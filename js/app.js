@@ -231,12 +231,12 @@ function _buildPriceLayer(tipo) {
       + (p.nombre ? `<br>${p.nombre}` : '')
       + `<br><span style="color:#888">${p.barrio}</span>`;
     return L.circleMarker([p.lat, p.lng], {
-      radius:      15,
+      radius:      24,
       fillColor:   color,
       color:       '#fff',
-      weight:      2,
+      weight:      2.5,
       opacity:     1,
-      fillOpacity: 0.85,
+      fillOpacity: 0.88,
     }).bindTooltip(label, { sticky: true, direction: 'top' });
   });
 
@@ -302,25 +302,16 @@ function priceM2DotColor(val) {
 function formatARS(n) { return Number(n).toLocaleString('es-AR'); }
 function formatUSD(n) { return 'USD ' + Number(n).toLocaleString('es-AR'); }
 
-function createMarkerIcon(zona, pricePerM2) {
+function createMarkerIcon(zona) {
   const zoneColor = ZONE_COLORS[zona] || '#555';
-  const dotColor  = priceM2DotColor(pricePerM2);
-  const label     = pricePerM2
-    ? `USD ${Math.round(pricePerM2).toLocaleString('es-AR')}/m²`
-    : '';
-
-  const hasLabel  = label.length > 0;
-  const h = hasLabel ? 36 : 14;
-
   return L.divIcon({
     className: 'custom-marker',
     html: `<div class="marker-wrap">
-      ${hasLabel ? `<div class="marker-label">${label}</div>` : ''}
-      <div class="marker-pin" style="background:${dotColor};border-color:${zoneColor}"></div>
+      <div class="marker-pin" style="background:#212121;border-color:${zoneColor}"></div>
     </div>`,
-    iconSize:    [110, h],
-    iconAnchor:  [55, h],
-    popupAnchor: [0, -(h + 4)],
+    iconSize:    [14, 14],
+    iconAnchor:  [7, 14],
+    popupAnchor: [0, -18],
   });
 }
 
@@ -361,9 +352,18 @@ function buildPopupHTML(id, prop) {
    ======================================== */
 function addMarker(id, prop) {
   if (!prop.lat || !prop.lng) return;
-  const pricePerM2 = (prop.m2_cubiertos > 0 && !prop.precio_consultar) ? prop.precio_usd / prop.m2_cubiertos : null;
-  const icon       = createMarkerIcon(prop.zona, pricePerM2);
-  const marker     = L.marker([prop.lat, prop.lng], { icon, title: prop.nombre || prop.barrio });
+  const icon   = createMarkerIcon(prop.zona);
+  const marker = L.marker([prop.lat, prop.lng], { icon, title: prop.nombre || prop.barrio });
+
+  // Tooltip on hover
+  marker.bindTooltip(() => {
+    const p      = properties[id] || prop;
+    const pm2    = (p.m2_cubiertos > 0 && !p.precio_consultar) ? p.precio_usd / p.m2_cubiertos : null;
+    const precio = p.precio_consultar ? 'Consultar' : formatUSD(p.precio_usd);
+    return `<b>${p.nombre || p.barrio}</b><br>${p.zona} · ${p.barrio}<br>`
+      + `${precio}`
+      + (pm2 ? `<br>USD ${Math.round(pm2).toLocaleString('es-AR')}/m²` : '');
+  }, { sticky: false, direction: 'top', offset: [0, -4] });
 
   marker.bindPopup(() => buildPopupHTML(id, properties[id] || prop), {
     maxWidth: 290,

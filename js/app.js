@@ -176,9 +176,9 @@ function initMap() {
     const div = L.DomUtil.create('div', 'map-legend');
     div.innerHTML = `
       <strong>USD/m² cubierto</strong>
-      <div class="legend-row"><span class="legend-dot" style="background:#4CAF50"></span> &lt; 1.500</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#FF9800"></span> 1.500 – 2.500</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#F44336"></span> &gt; 2.500</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#4CAF50"></span> &lt; 1.100</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#FF9800"></span> 1.100 – 1.600</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#F44336"></span> &gt; 1.600</div>
     `;
     return div;
   };
@@ -188,16 +188,33 @@ function initMap() {
 /* ========================================
    HEATMAP
    ======================================== */
+// Mapea un precio/m² a intensidad [0,1] usando breakpoints fijos por tipo.
+// Breakpoints fijos → el mismo valor siempre tiene el mismo color, independiente del dataset.
+function _pm2ToIntensity(pm2, tipo) {
+  // Cada par [precio_usd/m², intensidad]: interpolación lineal entre puntos
+  const bp = tipo === 'venta'
+    ? [ [0, 0.0], [900, 0.08], [1100, 0.22], [1300, 0.38], [1600, 0.55], [2000, 0.72], [2500, 0.88], [3200, 1.0] ]
+    : [ [0, 0.0], [4,   0.08], [7,   0.25],  [10,  0.45],  [14,  0.65],  [18,  0.82],  [24,  1.0]              ];
+
+  if (pm2 <= bp[0][0])                   return bp[0][1];
+  if (pm2 >= bp[bp.length - 1][0])       return bp[bp.length - 1][1];
+  for (let i = 1; i < bp.length; i++) {
+    if (pm2 <= bp[i][0]) {
+      const [x0, y0] = bp[i - 1];
+      const [x1, y1] = bp[i];
+      return y0 + (y1 - y0) * (pm2 - x0) / (x1 - x0);
+    }
+  }
+  return 1.0;
+}
+
 function _buildHeatPoints(tipo) {
   const filtered = Object.values(properties)
     .filter(p => p.lat && p.lng && p.precio_usd > 0 && p.m2_cubiertos > 0 && p.tipo === tipo);
   if (!filtered.length) return null;
-  const pm2Values = filtered.map(p => p.precio_usd / p.m2_cubiertos);
-  const minPm2    = Math.min(...pm2Values);
-  const range     = Math.max(...pm2Values) - minPm2;
-  return filtered.map((p, i) => {
-    const intensity = range > 0 ? 0.1 + 0.9 * (pm2Values[i] - minPm2) / range : 0.55;
-    return [p.lat, p.lng, intensity];
+  return filtered.map(p => {
+    const pm2 = p.precio_usd / p.m2_cubiertos;
+    return [p.lat, p.lng, _pm2ToIntensity(pm2, tipo)];
   });
 }
 
@@ -233,8 +250,9 @@ function updateHeatmapVenta() {
   const points = _buildHeatPoints('venta');
   if (!points) { showToast('Sin datos de venta para el heatmap', 'warning'); return; }
   heatVentaLayer = L.heatLayer(points, {
-    radius: 55, blur: 35, minOpacity: 0.4, max: 1.0,
-    gradient: { 0.4: '#43a047', 0.65: '#fb8c00', 1.0: '#e53935' },
+    radius: 50, blur: 30, minOpacity: 0.5, max: 1.0,
+    // azul=barato → verde → amarillo → naranja → rojo=caro
+    gradient: { 0.0: '#1565c0', 0.22: '#26a69a', 0.38: '#66bb6a', 0.55: '#d4e157', 0.72: '#ffa726', 0.88: '#ef5350', 1.0: '#880e4f' },
   }).addTo(map);
 }
 
@@ -244,8 +262,9 @@ function updateHeatmapAlquiler() {
   const points = _buildHeatPoints('alquiler');
   if (!points) { showToast('Sin datos de alquiler para el heatmap', 'warning'); return; }
   heatAlqLayer = L.heatLayer(points, {
-    radius: 55, blur: 35, minOpacity: 0.4, max: 1.0,
-    gradient: { 0.4: '#0288d1', 0.65: '#7b1fa2', 1.0: '#e91e63' },
+    radius: 50, blur: 30, minOpacity: 0.5, max: 1.0,
+    // celeste=barato → azul → violeta → rosa=caro
+    gradient: { 0.0: '#80deea', 0.25: '#0288d1', 0.45: '#5e35b1', 0.65: '#8e24aa', 0.82: '#d81b60', 1.0: '#880e4f' },
   }).addTo(map);
 }
 

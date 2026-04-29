@@ -176,9 +176,14 @@ function initMap() {
     const div = L.DomUtil.create('div', 'map-legend');
     div.innerHTML = `
       <strong>USD/m² cubierto</strong>
-      <div class="legend-row"><span class="legend-dot" style="background:#4CAF50"></span> &lt; 1.100</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#FF9800"></span> 1.100 – 1.600</div>
-      <div class="legend-row"><span class="legend-dot" style="background:#F44336"></span> &gt; 1.600</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#1565c0"></span> &lt; 900</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#0288d1"></span> 900 – 1.100</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#26a69a"></span> 1.100 – 1.300</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#66bb6a"></span> 1.300 – 1.600</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#fdd835"></span> 1.600 – 2.000</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#ffa726"></span> 2.000 – 2.500</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#ef5350"></span> 2.500 – 3.000</div>
+      <div class="legend-row"><span class="legend-dot" style="background:#880e4f"></span> &gt; 3.000</div>
     `;
     return div;
   };
@@ -186,42 +191,59 @@ function initMap() {
 }
 
 /* ========================================
-   HEATMAP
+   PRECIO/M² — CÍRCULOS COLOREADOS
+   Reemplaza el heatmap de densidad por círculos individuales
+   con color fijo según precio/m², sin mezcla entre puntos.
    ======================================== */
-// Mapea un precio/m² a intensidad [0,1] usando breakpoints fijos por tipo.
-// Breakpoints fijos → el mismo valor siempre tiene el mismo color, independiente del dataset.
-function _pm2ToIntensity(pm2, tipo) {
-  // Cada par [precio_usd/m², intensidad]: interpolación lineal entre puntos
-  const bp = tipo === 'venta'
-    ? [ [0, 0.0], [900, 0.08], [1100, 0.22], [1300, 0.38], [1600, 0.55], [2000, 0.72], [2500, 0.88], [3200, 1.0] ]
-    : [ [0, 0.0], [4,   0.08], [7,   0.25],  [10,  0.45],  [14,  0.65],  [18,  0.82],  [24,  1.0]              ];
+const PRICE_SCALE_VENTA = [
+  [  900, '#1565c0'],   // azul       < 900
+  [ 1100, '#0288d1'],   // celeste    900–1.100
+  [ 1300, '#26a69a'],   // teal       1.100–1.300
+  [ 1600, '#66bb6a'],   // verde      1.300–1.600
+  [ 2000, '#fdd835'],   // amarillo   1.600–2.000
+  [ 2500, '#ffa726'],   // naranja    2.000–2.500
+  [ 3000, '#ef5350'],   // rojo       2.500–3.000
+  [Infinity, '#880e4f'] // bordo      > 3.000
+];
 
-  if (pm2 <= bp[0][0])                   return bp[0][1];
-  if (pm2 >= bp[bp.length - 1][0])       return bp[bp.length - 1][1];
-  for (let i = 1; i < bp.length; i++) {
-    if (pm2 <= bp[i][0]) {
-      const [x0, y0] = bp[i - 1];
-      const [x1, y1] = bp[i];
-      return y0 + (y1 - y0) * (pm2 - x0) / (x1 - x0);
-    }
-  }
-  return 1.0;
+const PRICE_SCALE_ALQUILER = [
+  [  5, '#80deea'],     // celeste claro  < 5
+  [  8, '#26c6da'],     // cyan           5–8
+  [ 12, '#5e35b1'],     // violeta        8–12
+  [ 18, '#d81b60'],     // rosa           12–18
+  [Infinity, '#880e4f'] // bordo          > 18
+];
+
+function _pm2ToColor(pm2, tipo) {
+  const scale = tipo === 'venta' ? PRICE_SCALE_VENTA : PRICE_SCALE_ALQUILER;
+  return scale.find(([threshold]) => pm2 < threshold)[1];
 }
 
-function _buildHeatPoints(tipo) {
+function _buildPriceLayer(tipo) {
   const filtered = Object.values(properties)
     .filter(p => p.lat && p.lng && p.precio_usd > 0 && p.m2_cubiertos > 0 && p.tipo === tipo);
   if (!filtered.length) return null;
-  return filtered.map(p => {
-    const pm2 = p.precio_usd / p.m2_cubiertos;
-    return [p.lat, p.lng, _pm2ToIntensity(pm2, tipo)];
+
+  const circles = filtered.map(p => {
+    const pm2   = p.precio_usd / p.m2_cubiertos;
+    const color = _pm2ToColor(pm2, tipo);
+    const label = `<b>USD ${Math.round(pm2).toLocaleString('es-AR')}/m²</b>`
+      + (p.nombre ? `<br>${p.nombre}` : '')
+      + `<br><span style="color:#888">${p.barrio}</span>`;
+    return L.circleMarker([p.lat, p.lng], {
+      radius:      15,
+      fillColor:   color,
+      color:       '#fff',
+      weight:      2,
+      opacity:     1,
+      fillOpacity: 0.85,
+    }).bindTooltip(label, { sticky: true, direction: 'top' });
   });
+
+  return L.layerGroup(circles);
 }
 
 function toggleHeatmapVenta() {
-  if (typeof L.heatLayer !== 'function') {
-    showToast('Heatmap no disponible: leaflet.heat no se cargó', 'error'); return;
-  }
   heatVentaEnabled = !heatVentaEnabled;
   document.getElementById('btn-heatmap-venta').classList.toggle('active', heatVentaEnabled);
   if (!heatVentaEnabled) {
@@ -232,9 +254,6 @@ function toggleHeatmapVenta() {
 }
 
 function toggleHeatmapAlquiler() {
-  if (typeof L.heatLayer !== 'function') {
-    showToast('Heatmap no disponible: leaflet.heat no se cargó', 'error'); return;
-  }
   heatAlqEnabled = !heatAlqEnabled;
   document.getElementById('btn-heatmap-alquiler').classList.toggle('active', heatAlqEnabled);
   if (!heatAlqEnabled) {
@@ -245,27 +264,19 @@ function toggleHeatmapAlquiler() {
 }
 
 function updateHeatmapVenta() {
-  if (!heatVentaEnabled || typeof L.heatLayer !== 'function') return;
+  if (!heatVentaEnabled) return;
   if (heatVentaLayer) { map.removeLayer(heatVentaLayer); heatVentaLayer = null; }
-  const points = _buildHeatPoints('venta');
-  if (!points) { showToast('Sin datos de venta para el heatmap', 'warning'); return; }
-  heatVentaLayer = L.heatLayer(points, {
-    radius: 50, blur: 30, minOpacity: 0.5, max: 1.0,
-    // azul=barato → verde → amarillo → naranja → rojo=caro
-    gradient: { 0.0: '#1565c0', 0.22: '#26a69a', 0.38: '#66bb6a', 0.55: '#d4e157', 0.72: '#ffa726', 0.88: '#ef5350', 1.0: '#880e4f' },
-  }).addTo(map);
+  const layer = _buildPriceLayer('venta');
+  if (!layer) { showToast('Sin datos de venta', 'warning'); return; }
+  heatVentaLayer = layer.addTo(map);
 }
 
 function updateHeatmapAlquiler() {
-  if (!heatAlqEnabled || typeof L.heatLayer !== 'function') return;
+  if (!heatAlqEnabled) return;
   if (heatAlqLayer) { map.removeLayer(heatAlqLayer); heatAlqLayer = null; }
-  const points = _buildHeatPoints('alquiler');
-  if (!points) { showToast('Sin datos de alquiler para el heatmap', 'warning'); return; }
-  heatAlqLayer = L.heatLayer(points, {
-    radius: 50, blur: 30, minOpacity: 0.5, max: 1.0,
-    // celeste=barato → azul → violeta → rosa=caro
-    gradient: { 0.0: '#80deea', 0.25: '#0288d1', 0.45: '#5e35b1', 0.65: '#8e24aa', 0.82: '#d81b60', 1.0: '#880e4f' },
-  }).addTo(map);
+  const layer = _buildPriceLayer('alquiler');
+  if (!layer) { showToast('Sin datos de alquiler', 'warning'); return; }
+  heatAlqLayer = layer.addTo(map);
 }
 
 function updateHeatmaps() {

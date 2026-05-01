@@ -13,8 +13,7 @@ const FIREBASE_CONFIG = {
   appId: "1:664863400787:web:3304bc423811167252f7a6"
 };
 
-const PASSWORD = 'mapanorte2026';
-const SESSION_KEY = 'mapa_norte_auth_v1';
+const ADMIN_EMAIL = 'martinvuotto@gmail.com';
 
 /* ========================================
    ZONE COLORS
@@ -87,6 +86,7 @@ const BARRIOS = {
     { nombre: 'Ingeniero Maschwitz (abierto)',   lat: -34.3900, lng: -58.7600 },
     { nombre: 'Maquinista Savio (abierto)',      lat: -34.3250, lng: -58.8200 },
     { nombre: 'Open Door (abierto)',             lat: -34.3100, lng: -58.8900 },
+    { nombre: 'Naudir',                          lat: -34.3350, lng: -58.8450 },
     { nombre: 'La Comarca',                      lat: -34.4600, lng: -58.6550 },
   ],
   'Pilar': [
@@ -136,6 +136,8 @@ let currentTab      = 'add';
 firebase.initializeApp(FIREBASE_CONFIG);
 const db       = firebase.database();
 const propsRef = db.ref('properties');
+const auth     = firebase.auth();
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 
 /* ========================================
    ENTRY POINT
@@ -143,7 +145,7 @@ const propsRef = db.ref('properties');
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   initForm();
-  checkSession();
+  auth.onAuthStateChanged(user => { if (user) authenticate(true); });
   setupFirebaseSync();
   setupImportInput();
   setupModalClickOutside();
@@ -896,12 +898,6 @@ function downloadTemplate() {
 /* ========================================
    AUTH / PASSWORD
    ======================================== */
-function checkSession() {
-  if (sessionStorage.getItem(SESSION_KEY) === PASSWORD) {
-    authenticate(/* silent */ true);
-  }
-}
-
 function promptPassword() {
   if (isAuthenticated) return; // already in
   openModal();
@@ -919,16 +915,17 @@ function closeModal() {
 
 function submitPassword() {
   const val = document.getElementById('pw-input').value;
-  if (val === PASSWORD) {
-    sessionStorage.setItem(SESSION_KEY, val);
-    authenticate(false);
-    closeModal();
-    showToast('Acceso concedido — podés agregar propiedades', 'success');
-  } else {
-    showToast('Contraseña incorrecta', 'error');
-    document.getElementById('pw-input').value = '';
-    document.getElementById('pw-input').focus();
-  }
+  auth.signInWithEmailAndPassword(ADMIN_EMAIL, val)
+    .then(() => {
+      authenticate(false);
+      closeModal();
+      showToast('Acceso concedido — podés agregar propiedades', 'success');
+    })
+    .catch(() => {
+      showToast('Contraseña incorrecta', 'error');
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    });
 }
 
 function authenticate(silent) {

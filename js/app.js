@@ -127,6 +127,8 @@ let properties  = {};   // { firebaseId: propertyObject }
 let markers     = {};   // { firebaseId: L.marker }
 
 let isAuthenticated = false;
+let isAdmin        = false;
+let syncStarted    = false;
 let currentFilter   = 'all';
 let currentTab      = 'add';
 
@@ -145,15 +147,16 @@ auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
   initForm();
-  auth.onAuthStateChanged(user => { if (user) authenticate(true); });
-  setupFirebaseSync();
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      authenticate(true);
+      if (!syncStarted) { syncStarted = true; setupFirebaseSync(); }
+      closeModal();
+    } else {
+      openModal();
+    }
+  });
   setupImportInput();
-  setupModalClickOutside();
-
-  // Auto-prompt password on first load if not yet authenticated
-  if (!isAuthenticated) {
-    openModal();
-  }
 });
 
 /* ========================================
@@ -369,7 +372,7 @@ function buildPopupHTML(id, prop) {
         USD ${Math.round(pricePerM2).toLocaleString('es-AR')}/m²
       </div>` : ''}
     ${prop.url ? `<p style="margin-top:8px"><a href="${prop.url}" target="_blank" rel="noopener noreferrer">Ver publicación ↗</a></p>` : ''}
-    ${isAuthenticated
+    ${isAdmin
       ? `<button class="popup-del-btn" onclick="deleteProperty('${id}')">🗑 Eliminar propiedad</button>`
       : ''}
   </div>`;
@@ -491,7 +494,7 @@ function _propKey(prop) {
 }
 
 function deduplicateAll() {
-  if (!isAuthenticated) { showToast('Ingresá la contraseña primero', 'error'); return; }
+  if (!isAdmin) { showToast('No autorizado', 'error'); return; }
 
   const seen     = new Map(); // key → id a conservar
   const toDelete = [];
@@ -519,7 +522,7 @@ function deduplicateAll() {
 }
 
 function recalcularCoords() {
-  if (!isAuthenticated) { showToast('Ingresá la contraseña primero', 'error'); return; }
+  if (!isAdmin) { showToast('No autorizado', 'error'); return; }
 
   const total = Object.keys(properties).length;
   if (!total) { showToast('No hay propiedades cargadas', 'info'); return; }
@@ -550,14 +553,14 @@ function recalcularCoords() {
    PROPERTY CRUD
    ======================================== */
 function addProperty(data) {
-  if (!isAuthenticated) { showToast('Ingresá la contraseña primero', 'error'); return; }
+  if (!isAdmin) { showToast('No autorizado', 'error'); return; }
   propsRef.push({ ...data, timestamp: Date.now() })
     .then(() => showToast('Propiedad agregada ✓', 'success'))
     .catch(err => showToast('Error al guardar: ' + err.message, 'error'));
 }
 
 function deleteProperty(id) {
-  if (!isAuthenticated) { showToast('No autorizado', 'error'); return; }
+  if (!isAdmin) { showToast('No autorizado', 'error'); return; }
   if (!confirm('¿Eliminar esta propiedad?')) return;
   propsRef.child(id).remove()
     .then(() => showToast('Propiedad eliminada', 'info'))
@@ -603,7 +606,7 @@ function initForm() {
 
 function handleFormSubmit(e) {
   e.preventDefault();
-  if (!isAuthenticated) { showToast('No autorizado', 'error'); return; }
+  if (!isAdmin) { showToast('No autorizado', 'error'); return; }
 
   const f      = e.target;
   const zona   = f.zona.value;
@@ -690,7 +693,7 @@ function renderList() {
         <div class="prop-price">${prop.precio_consultar ? 'Consultar' : formatUSD(prop.precio_usd)}</div>
         ${m2label ? `<div class="prop-m2 ${cls}">${m2label}</div>` : ''}
       </div>
-      ${isAuthenticated
+      ${isAdmin
         ? `<div class="prop-actions">
              <button class="btn btn-danger btn-sm"
                onclick="event.stopPropagation();deleteProperty('${id}')">✕</button>
@@ -796,7 +799,7 @@ function setupImportInput() {
 }
 
 function importExcel(file) {
-  if (!isAuthenticated) { showToast('Necesitás contraseña para importar', 'error'); return; }
+  if (!isAdmin) { showToast('No autorizado', 'error'); return; }
 
   const reader = new FileReader();
   reader.onload = e => {
@@ -933,24 +936,21 @@ function promptPassword() {
 
 function openModal() {
   document.getElementById('pw-modal').classList.remove('hidden');
-  setTimeout(() => document.getElementById('pw-input').focus(), 120);
+  setTimeout(() => document.getElementById('email-input').focus(), 120);
 }
 
 function closeModal() {
   document.getElementById('pw-modal').classList.add('hidden');
+  document.getElementById('email-input').value = '';
   document.getElementById('pw-input').value = '';
 }
 
 function submitPassword() {
-  const val = document.getElementById('pw-input').value;
-  auth.signInWithEmailAndPassword(ADMIN_EMAIL, val)
-    .then(() => {
-      authenticate(false);
-      closeModal();
-      showToast('Acceso concedido — podés agregar propiedades', 'success');
-    })
+  const email = document.getElementById('email-input').value.trim();
+  const val   = document.getElementById('pw-input').value;
+  auth.signInWithEmailAndPassword(email, val)
     .catch(() => {
-      showToast('Contraseña incorrecta', 'error');
+      showToast('Email o contraseña incorrectos', 'error');
       document.getElementById('pw-input').value = '';
       document.getElementById('pw-input').focus();
     });
@@ -958,20 +958,22 @@ function submitPassword() {
 
 function authenticate(silent) {
   isAuthenticated = true;
+  isAdmin = !!(auth.currentUser && auth.currentUser.email === ADMIN_EMAIL);
 
-  // Show form, hide notice
-  document.getElementById('prop-form').classList.remove('hidden');
-  document.getElementById('auth-notice').classList.add('hidden');
+  if (isAdmin) {
+    // Show form, hide notice
+    document.getElementById('prop-form').classList.remove('hidden');
+    document.getElementById('auth-notice').classList.add('hidden');
+    // Show dedup + recalc buttons
+    document.getElementById('btn-dedup').classList.remove('hidden');
+    document.getElementById('btn-recalc').classList.remove('hidden');
+  }
 
   // Update header button
   const btn = document.getElementById('btn-auth');
   btn.textContent  = '✓ Autenticado';
   btn.className    = 'btn btn-primary-white authed';
   btn.onclick      = null;
-
-  // Show dedup + recalc buttons
-  document.getElementById('btn-dedup').classList.remove('hidden');
-  document.getElementById('btn-recalc').classList.remove('hidden');
 
   // Refresh list to expose delete buttons
   renderList();

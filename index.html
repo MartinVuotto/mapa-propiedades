@@ -154,14 +154,16 @@
   <!-- ===== PASSWORD MODAL ===== -->
   <div id="pw-modal" class="modal-overlay hidden">
     <div class="modal-box" onclick="event.stopPropagation()">
-      <h3>Acceso de edición</h3>
-      <p class="modal-desc">Ingresá la contraseña para agregar y eliminar propiedades. Podés cerrar esta ventana para continuar en modo lectura.</p>
+      <h3>Acceso</h3>
+      <p class="modal-desc">Ingresá tu email y contraseña para acceder al mapa.</p>
+      <div class="form-group">
+        <input type="email" id="email-input" placeholder="Email" autocomplete="email">
+      </div>
       <div class="form-group">
         <input type="password" id="pw-input" placeholder="Contraseña" autocomplete="current-password">
       </div>
       <div class="modal-buttons">
         <button class="btn btn-filled" onclick="submitPassword()">Ingresar</button>
-        <button class="btn btn-ghost" onclick="closeModal()">Ver sin contraseña</button>
       </div>
     </div>
   </div>
